@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 	// creating window and renderer
 	if(SDL_CreateWindowAndRenderer( 600 , 600 , SDL_WINDOW_RESIZABLE,&window,&renderer)<0)
 	{
-		printf("Erreur lors de la creation d'un renderer : %s",SDL_GetError());
+		printf("Error SDL_CreateWindowAndRenderer : %s",SDL_GetError());
 		return EXIT_FAILURE;
 	}
 	
