@@ -8,13 +8,39 @@ SDL_Renderer* renderer;
 SDL_Texture * grid;
 
 const int cell_size = 15;
-const int window_width = 1280 - 1280 % 25;
-const int window_height = 720 - 720 % 25;
+const int window_width = 1280 - 1280 % cell_size;
+const int window_height = 720 - 720 % cell_size;
+const int cols = window_width / cell_size;
+const int rows = window_height / cell_size;
 
 SDL_Color red = {255, 0, 0, 255};
 SDL_Color gridColor = {34, 34,34, 255};
-SDL_Color white = { 255, 255, 255 };
+SDL_Color white = { 255, 255, 255};
 SDL_Color alpha = {0, 0, 0, 0};
+
+typedef struct Cell {
+  int state;
+  SDL_Rect rect;
+  // ... colors in the future ? :3
+} Cell;
+
+SDL_Rect getRect(int blockX, int blockY) {
+	SDL_Rect rect;
+	rect.x = blockX*cell_size;
+	rect.y = blockY*cell_size;
+	rect.w = cell_size;
+	rect.h = cell_size;
+	return rect;
+}
+
+void init_game_array(Cell arr[rows][cols]) {
+	for (int row = 0; row < rows; row++) {
+		for (int col = 0;col < cols; col++) {
+			arr[row][col].rect = getRect(col, row);
+			arr[row][col].state = 0;
+		}
+	}
+}
 
 int init_window() {
 	// init SDL
@@ -89,7 +115,9 @@ void renderText(TTF_Font * font, char * str, SDL_Rect dest) {
 // https://benedicthenshaw.com/soft_render_sdl2.html
 int main(int argc, char *argv[])
 {
-	
+	Cell game[rows][cols];
+	init_game_array(game);
+
 	if (init_window() != 1) return EXIT_FAILURE;	
 	if (init_grid_texture(gridColor) != 1) return EXIT_FAILURE;
 	SDL_SetWindowTitle(window, "Gabey's game of life.");
@@ -120,22 +148,34 @@ int main(int argc, char *argv[])
 				continueRunning = 0;
 				break;
 			}
-		}
 
+			if(event.type == SDL_MOUSEBUTTONDOWN) {
+				int col = mouseX / cell_size;
+				int row= mouseY / cell_size;
+				game[row][col].state = 1;
+			}
+		}
+		// FIX SEG FAULT LOL
 		SDL_GetMouseState(&mouseX, &mouseY);
 		char str[100];
 		int blockX = mouseX / cell_size;
 		int blockY= mouseY / cell_size;
 		sprintf(str, "x: %d,y: %d, chunk (x-y): %d-%d", mouseX, mouseY, blockX, blockY);
 
-		set_color(white);
-		 SDL_Rect cell;
-		cell.x = blockX*cell_size;
-		cell.y = blockY*cell_size;
-		cell.w = cell_size;
-		cell.h = cell_size;
-		SDL_RenderFillRect( renderer, &cell );
+		for (int row = 0; row < rows; row++) {
+			for (int col = 0;col < cols; col++) {
+				if (game[row][col].state == 1) {
+					SDL_RenderFillRect( renderer, &game[row][col].rect );
+				}
+			}
+		}	
 
+		// showing current block while hovevering 
+		set_color(white);
+		SDL_Rect cell = getRect(blockX, blockY);
+		SDL_RenderFillRect( renderer, &cell );
+		
+		
 		renderText(font, str, textZone);
 		fontSurface = TTF_RenderText_Solid(font,str, white);
 		SDL_RenderPresent(renderer);
@@ -152,4 +192,3 @@ int main(int argc, char *argv[])
 	SDL_Quit(); 
 	return EXIT_SUCCESS;
 }
-
