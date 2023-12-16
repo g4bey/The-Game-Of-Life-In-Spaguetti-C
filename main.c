@@ -21,6 +21,8 @@ SDL_Color alpha = {0, 0, 0, 0};
 
 typedef struct Cell {
   int state;
+  int blockX;
+  int blockY;
   SDL_Rect rect;
   // ... colors in the future ? :3
 } Cell;
@@ -39,6 +41,8 @@ void init_game_array(Cell arr[rows][cols]) {
 		for (int col = 0;col < cols; col++) {
 			arr[row][col].rect = getRect(col, row);
 			arr[row][col].state = 0;
+			arr[row][col].blockX = col;
+			arr[row][col].blockY = row;
 		}
 	}
 }
@@ -107,19 +111,17 @@ struct {
 	int running;
 } game_state = {0, 1, 0};
 
-// TODO... 
-// https://stackoverflow.com/questions/62379457/how-to-draw-a-grid-of-pixels-fast-with-sdl2
-// Try the solution tomorrow.
-// https://fr.wikibooks.org/wiki/Programmation_avec_la_SDL/Les_textures
-// https://github.com/IsakBrendestam/GridTemplate/blob/main/main.c
-// https://github.com/catsocks/sdl-grid
-// https://www.youtube.com/watch?v=75yEVx8iXYQ < from suirface
-// https://www.youtube.com/watch?v=75yEVx8iXYQ
-// https://fr.wikibooks.org/wiki/Programmation_avec_la_SDL/Les_textures
-// https://www.youtube.com/watch?v=XfZ6WrV5Z7Y&t=2700s
-// fr https://www.youtube.com/watch?v=IF99v5_uHEY
-// https://zestedesavoir.com/tutoriels/1014/utiliser-la-sdl-en-langage-c/modification-pixels-par-pixels/
-// https://benedicthenshaw.com/soft_render_sdl2.html
+void updateCell() {
+
+}
+
+// Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
+
+// Any live cell with two or three live neighbours lives on to the next generation.
+
+// Any live cell with more than three live neighbours dies, as if by overpopulation.
+
+// Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 int main(int argc, char *argv[])
 {
 	// disable buffering for stdout
@@ -226,4 +228,3 @@ int main(int argc, char *argv[])
 	SDL_Quit(); 
 	return EXIT_SUCCESS;
 }
-
