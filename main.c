@@ -16,6 +16,7 @@ const int rows = window_height / cell_size;
 SDL_Color red = {255, 0, 0, 255};
 SDL_Color gridColor = {34, 34,34, 255};
 SDL_Color white = { 255, 255, 255};
+SDL_Color alive = { 200, 200, 200};
 SDL_Color alpha = {0, 0, 0, 0};
 
 typedef struct Cell {
@@ -100,6 +101,12 @@ void renderText(TTF_Font * font, char * str, SDL_Rect dest) {
 	SDL_FreeSurface(surf);
 }
 
+struct {
+	int generation; // how many generation since starting.
+	int edition_mode;
+	int running;
+} game_state = {0, 1, 0};
+
 // TODO... 
 // https://stackoverflow.com/questions/62379457/how-to-draw-a-grid-of-pixels-fast-with-sdl2
 // Try the solution tomorrow.
@@ -115,6 +122,9 @@ void renderText(TTF_Font * font, char * str, SDL_Rect dest) {
 // https://benedicthenshaw.com/soft_render_sdl2.html
 int main(int argc, char *argv[])
 {
+	// disable buffering for stdout
+	setvbuf (stdout, NULL, _IONBF, 0);
+
 	Cell game[rows][cols];
 	init_game_array(game);
 
@@ -149,11 +159,35 @@ int main(int argc, char *argv[])
 				break;
 			}
 
+			// toggle <=> untoggle blocks.
 			if(event.type == SDL_MOUSEBUTTONDOWN) {
-				int col = mouseX / cell_size;
-				int row= mouseY / cell_size;
-				game[row][col].state = 1;
+				if (game_state.edition_mode == 1) {
+					int col = mouseX / cell_size;
+					int row= mouseY / cell_size;
+					if (game[row][col].state == 0) {
+						game[row][col].state = 1;
+					} else {
+						game[row][col].state = 0;
+					}
+				} else {
+					printf("Edition mode is disabled.\n");
+				}
 			}
+			
+			if(event.type == SDL_KEYDOWN) {
+				if(event.key.keysym.sym==SDLK_l) {
+					if (game_state.running == 0) {
+						if (game_state.edition_mode == 0) {
+							game_state.edition_mode = 1;
+						} else {
+							game_state.edition_mode = 0;
+						}
+					} else {
+        				printf("Game is already running.\n");
+					}
+				}
+			}
+
 		}
 		// FIX SEG FAULT LOL
 		SDL_GetMouseState(&mouseX, &mouseY);
@@ -165,6 +199,7 @@ int main(int argc, char *argv[])
 		for (int row = 0; row < rows; row++) {
 			for (int col = 0;col < cols; col++) {
 				if (game[row][col].state == 1) {
+					set_color(alive);
 					SDL_RenderFillRect( renderer, &game[row][col].rect );
 				}
 			}
@@ -174,7 +209,6 @@ int main(int argc, char *argv[])
 		set_color(white);
 		SDL_Rect cell = getRect(blockX, blockY);
 		SDL_RenderFillRect( renderer, &cell );
-		
 		
 		renderText(font, str, textZone);
 		fontSurface = TTF_RenderText_Solid(font,str, white);
@@ -192,3 +226,4 @@ int main(int argc, char *argv[])
 	SDL_Quit(); 
 	return EXIT_SUCCESS;
 }
+
