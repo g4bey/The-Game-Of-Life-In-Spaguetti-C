@@ -23,6 +23,7 @@ typedef struct Cell {
   int state;
   int blockX;
   int blockY;
+  int liveNeighbors;
   SDL_Rect rect;
   // ... colors in the future ? :3
 } Cell;
@@ -43,6 +44,7 @@ void init_game_array(Cell arr[rows][cols]) {
 			arr[row][col].state = 0;
 			arr[row][col].blockX = col;
 			arr[row][col].blockY = row;
+			arr[row][col].liveNeighbors = 0;
 		}
 	}
 }
@@ -111,17 +113,65 @@ struct {
 	int running;
 } game_state = {0, 1, 0};
 
-void updateCell() {
+// % is not modulo but remainder.
+int mod(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
+}
 
+int countLiveNeighbors(Cell cell, Cell game[rows][cols]) {
+	int left = mod(cell.blockX - 1, cols);
+	int right = mod(cell.blockX + 1, cols);
+	int down = mod(cell.blockY + 1, rows);
+	int up = mod(cell.blockY - 1, rows);
+
+	int upperLeft = game[up][left].state;
+	int upper = game[up][cell.blockX].state;
+	int upperRight = game[up][right].state;
+	int lefter = game[cell.blockY][left].state;
+	int righter = game[cell.blockY][right].state;
+	int downerLeft = game[down][left].state;
+	int downer = game[down][cell.blockX].state;
+	int downerRight = game[down][right].state;
+	
+	return upperLeft + upper + upperRight 
+			+ lefter + righter + downerLeft 
+			+ downer + downerRight;
+}
+
+void countLiveNeighborsForAllCells(Cell game[rows][cols]) {
+	for (int row = 0; row < rows; row++) {
+		for (int col = 0;col < cols; col++) {
+			int neighbors = countLiveNeighbors(game[row][col], game);
+			game[row][col].liveNeighbors = neighbors;
+		}
+	} 
 }
 
 // Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
-
 // Any live cell with two or three live neighbours lives on to the next generation.
-
 // Any live cell with more than three live neighbours dies, as if by overpopulation.
-
 // Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+void updateCellState(Cell game[rows][cols]) {
+	for (int row = 0; row < rows; row++) {
+		for (int col = 0;col < cols; col++) {
+			if (game[row][col].state == 1) {
+				if (game[row][col].liveNeighbors < 2) {
+					game[row][col].state = 0;
+				} else if (game[row][col].liveNeighbors > 3) {
+					game[row][col].state = 0;
+				}
+
+			} else {
+				if (game[row][col].liveNeighbors == 3) {
+					game[row][col].state = 1;
+				}
+			}
+		}
+	} 
+}
+
 int main(int argc, char *argv[])
 {
 	// disable buffering for stdout
@@ -171,6 +221,7 @@ int main(int argc, char *argv[])
 					} else {
 						game[row][col].state = 0;
 					}
+		
 				} else {
 					printf("Edition mode is disabled.\n");
 				}
@@ -188,33 +239,52 @@ int main(int argc, char *argv[])
         				printf("Game is already running.\n");
 					}
 				}
+				else if(event.key.keysym.sym==SDLK_r) {
+					if (game_state.running == 0) {
+						game_state.running = 1;
+					} else {
+        				printf("Game is already running.\n");
+					}
+				} else if (event.key.keysym.sym==SDLK_c)
+				{
+					game_state.running = 0;
+					init_game_array(game);
+				}
 			}
 
 		}
-		// FIX SEG FAULT LOL
+
+
 		SDL_GetMouseState(&mouseX, &mouseY);
 		char str[100];
 		int blockX = mouseX / cell_size;
 		int blockY= mouseY / cell_size;
-		sprintf(str, "x: %d,y: %d, chunk (x-y): %d-%d", mouseX, mouseY, blockX, blockY);
+		sprintf(str, "x: %d,y: %d, chunk (x-y): %d-%d, generation: %d", mouseX, mouseY, blockX, blockY, game_state.generation);
 
 		for (int row = 0; row < rows; row++) {
 			for (int col = 0;col < cols; col++) {
 				if (game[row][col].state == 1) {
 					set_color(alive);
-					SDL_RenderFillRect( renderer, &game[row][col].rect );
+					SDL_RenderFillRect( renderer, &game[row][col].rect);
 				}
 			}
 		}	
 
+		if (game_state.running == 1) {
+			countLiveNeighborsForAllCells(game);
+			updateCellState(game);
+			game_state.generation++;
+		}
+
 		// showing current block while hovevering 
 		set_color(white);
-		SDL_Rect cell = getRect(blockX, blockY);
-		SDL_RenderFillRect( renderer, &cell );
+		SDL_Rect rect = getRect(blockX, blockY);
+		SDL_RenderFillRect( renderer, &rect );
 		
 		renderText(font, str, textZone);
 		fontSurface = TTF_RenderText_Solid(font,str, white);
 		SDL_RenderPresent(renderer);
+		SDL_Delay(100);
 	}
 
 	SDL_DestroyTexture(fontTexture);
@@ -228,3 +298,4 @@ int main(int argc, char *argv[])
 	SDL_Quit(); 
 	return EXIT_SUCCESS;
 }
+
