@@ -195,13 +195,10 @@ int main(int argc, char *argv[])
 	TTF_Init();
 	TTF_Font * font = TTF_OpenFont("arial.ttf", 25);
 	int mouseX, mouseY;
-
-	SDL_Texture * fontTexture;
 	
 	int texW = 0;
 	int texH = 0;
 	SDL_Rect textZone = { 0, 0, texW, texH };
-	SDL_QueryTexture(fontTexture, NULL, NULL, &texW, &texH);
 
 	int continueRunning = 1;
 	while(continueRunning){
@@ -302,7 +299,6 @@ int main(int argc, char *argv[])
 		ticks += 10;
 	}
 
-	SDL_DestroyTexture(fontTexture);
 	TTF_CloseFont(font);
 	TTF_Quit();
 
