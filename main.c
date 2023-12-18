@@ -13,11 +13,9 @@ const int window_height = 720 - 720 % cell_size;
 const int cols = window_width / cell_size;
 const int rows = window_height / cell_size;
 
-SDL_Color red = {255, 0, 0, 255};
 SDL_Color gridColor = {34, 34,34, 255};
 SDL_Color white = { 255, 255, 255};
 SDL_Color alive = { 200, 200, 200};
-SDL_Color alpha = {0, 0, 0, 0};
 
 typedef struct Cell {
   int state;
@@ -25,8 +23,13 @@ typedef struct Cell {
   int blockY;
   int liveNeighbors;
   SDL_Rect rect;
-  // ... colors in the future ? :3
 } Cell;
+
+struct {
+	int generation; // how many generation since starting.
+	int edition_mode;
+	int running;
+} game_state = {0, 1, 0};
 
 SDL_Rect getRect(int blockX, int blockY) {
 	SDL_Rect rect;
@@ -107,12 +110,6 @@ void renderText(TTF_Font * font, char * str, SDL_Rect dest) {
 	SDL_FreeSurface(surf);
 }
 
-struct {
-	int generation; // how many generation since starting.
-	int edition_mode;
-	int running;
-} game_state = {0, 1, 0};
-
 // % is not modulo but remainder.
 int mod(int a, int b)
 {
@@ -172,6 +169,17 @@ void updateCellState(Cell game[rows][cols]) {
 	} 
 }
 
+void renderCells(Cell game[rows][cols]) {
+	for (int row = 0; row < rows; row++) {
+		for (int col = 0;col < cols; col++) {
+			if (game[row][col].state == 1) {
+				SDL_RenderFillRect( renderer, &game[row][col].rect);
+			}
+		}
+	}	
+}
+
+int ticks = 0;
 int main(int argc, char *argv[])
 {
 	// disable buffering for stdout
@@ -205,14 +213,14 @@ int main(int argc, char *argv[])
 		SDL_RenderCopy(renderer, grid, NULL, NULL);
 
 		while (SDL_PollEvent( &event ))
-		{
+		{	
 			if (event.type == SDL_QUIT) {
 				continueRunning = 0;
 				break;
 			}
 
 			// toggle <=> untoggle blocks.
-			if(event.type == SDL_MOUSEBUTTONDOWN) {
+			else if(event.type == SDL_MOUSEBUTTONDOWN) {
 				if (game_state.edition_mode == 1) {
 					int col = mouseX / cell_size;
 					int row= mouseY / cell_size;
@@ -227,53 +235,61 @@ int main(int argc, char *argv[])
 				}
 			}
 			
-			if(event.type == SDL_KEYDOWN) {
-				if(event.key.keysym.sym==SDLK_l) {
+			// l: lock / unlock editing mode.
+			// r: start the game if it's not running.
+			// c: clear board and reset the game.
+			else if(event.type == SDL_KEYDOWN) {
+
+				switch (event.key.keysym.sym) {
+				case SDLK_l:
 					if (game_state.running == 0) {
 						if (game_state.edition_mode == 0) {
 							game_state.edition_mode = 1;
 						} else {
 							game_state.edition_mode = 0;
 						}
-					} else {
-        				printf("Game is already running.\n");
 					}
-				}
-				else if(event.key.keysym.sym==SDLK_r) {
+					break;
+				case SDLK_r:
 					if (game_state.running == 0) {
 						game_state.running = 1;
 					} else {
-        				printf("Game is already running.\n");
+						game_state.running = 0;
+        				printf("Game was already running. Pausing game.\n");
 					}
-				} else if (event.key.keysym.sym==SDLK_c)
-				{
+					break;
+				case SDLK_c:
 					game_state.running = 0;
 					init_game_array(game);
+					break;
+				default:
+					break;
 				}
 			}
 
 		}
 
-
-		SDL_GetMouseState(&mouseX, &mouseY);
-		char str[100];
+		// computing chunk
 		int blockX = mouseX / cell_size;
 		int blockY= mouseY / cell_size;
-		sprintf(str, "x: %d,y: %d, chunk (x-y): %d-%d, generation: %d", mouseX, mouseY, blockX, blockY, game_state.generation);
+		
+		// updating textual informations om the top left corner.
+		SDL_GetMouseState(&mouseX, &mouseY);
+		char str[100];
+		sprintf(str, "x: %d,y: %d, chunk (x-y): %d-%d, generation: %d, Running: %d",
+		mouseX, mouseY, blockX, blockY, game_state.generation,game_state.running);
+		renderText(font, str, textZone);
+		fontSurface = TTF_RenderText_Solid(font,str, white);
 
-		for (int row = 0; row < rows; row++) {
-			for (int col = 0;col < cols; col++) {
-				if (game[row][col].state == 1) {
-					set_color(alive);
-					SDL_RenderFillRect( renderer, &game[row][col].rect);
-				}
-			}
-		}	
+		// rendering the cells
+		set_color(alive);
+		renderCells(game);
 
-		if (game_state.running == 1) {
+		if (game_state.running == 1 && ticks > 100) {
 			countLiveNeighborsForAllCells(game);
 			updateCellState(game);
 			game_state.generation++;
+			ticks = 0;
 		}
 
 		// showing current block while hovevering 
@@ -281,10 +297,10 @@ int main(int argc, char *argv[])
 		SDL_Rect rect = getRect(blockX, blockY);
 		SDL_RenderFillRect( renderer, &rect );
 		
-		renderText(font, str, textZone);
-		fontSurface = TTF_RenderText_Solid(font,str, white);
 		SDL_RenderPresent(renderer);
-		SDL_Delay(100);
+
+		SDL_Delay(10);
+		ticks += 10;
 	}
 
 	SDL_DestroyTexture(fontTexture);
@@ -298,4 +314,3 @@ int main(int argc, char *argv[])
 	SDL_Quit(); 
 	return EXIT_SUCCESS;
 }
-
