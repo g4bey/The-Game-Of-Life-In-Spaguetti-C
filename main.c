@@ -196,7 +196,6 @@ int main(int argc, char *argv[])
 	TTF_Font * font = TTF_OpenFont("arial.ttf", 25);
 	int mouseX, mouseY;
 
-	SDL_Surface * fontSurface;
 	SDL_Texture * fontTexture;
 	
 	int texW = 0;
@@ -260,6 +259,7 @@ int main(int argc, char *argv[])
 					break;
 				case SDLK_c:
 					game_state.running = 0;
+					game_state.generation = 0;
 					init_game_array(game);
 					break;
 				default:
@@ -279,7 +279,6 @@ int main(int argc, char *argv[])
 		sprintf(str, "x: %d,y: %d, chunk (x-y): %d-%d, generation: %d, Running: %d",
 		mouseX, mouseY, blockX, blockY, game_state.generation,game_state.running);
 		renderText(font, str, textZone);
-		fontSurface = TTF_RenderText_Solid(font,str, white);
 
 		// rendering the cells
 		set_color(alive);
@@ -304,7 +303,6 @@ int main(int argc, char *argv[])
 	}
 
 	SDL_DestroyTexture(fontTexture);
-	SDL_FreeSurface(fontSurface);
 	TTF_CloseFont(font);
 	TTF_Quit();
 
@@ -314,3 +312,4 @@ int main(int argc, char *argv[])
 	SDL_Quit(); 
 	return EXIT_SUCCESS;
 }
+
